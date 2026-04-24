@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Biplob's Productivity Dashboard</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:#f5f4f0;color:#1a1a1a;min-height:100vh}
+.app{display:grid;grid-template-columns:220px 1fr;min-height:100vh}
+.sidebar{background:#eeecea;border-right:0.5px solid #d3d1c7;padding:1rem;display:flex;flex-direction:column;gap:8px}
+.sidebar-brand{font-size:15px;font-weight:600;color:#1a1a1a;padding:4px 0 12px;border-bottom:0.5px solid #d3d1c7;margin-bottom:4px}
+.sidebar h2{font-size:11px;font-weight:500;color:#888780;letter-spacing:0.05em;text-transform:uppercase;margin:12px 0 4px}
+.nav-btn{background:none;border:none;text-align:left;padding:8px 10px;border-radius:8px;cursor:pointer;font-size:14px;color:#5f5e5a;width:100%;display:flex;align-items:center;gap:8px;transition:background 0.15s}
+.nav-btn:hover,.nav-btn.active{background:#fff;color:#1a1a1a}
+.nav-btn.active{font-weight:500}
+.dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.main{padding:1.5rem;display:flex;flex-direction:column;gap:1.25rem;overflow-y:auto;background:#f5f4f0}
+.section{display:none}
+.section.visible{display:flex;flex-direction:column;gap:1rem}
+.page-title{font-size:20px;font-weight:600;color:#1a1a1a}
+.page-sub{font-size:13px;color:#888780;margin-top:2px}
+.stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.stat-card{background:#eeecea;border-radius:8px;padding:1rem;text-align:center}
+.stat-num{font-size:28px;font-weight:600;color:#1a1a1a}
+.stat-lbl{font-size:12px;color:#888780;margin-top:2px}
+.card{background:#fff;border:0.5px solid #d3d1c7;border-radius:12px;padding:1rem 1.25rem}
+.card-title{font-size:14px;font-weight:500;color:#1a1a1a;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center}
+.add-btn{font-size:12px;background:none;border:0.5px solid #b4b2a9;padding:4px 10px;border-radius:8px;cursor:pointer;color:#888780}
+.add-btn:hover{background:#eeecea}
+.task-item{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:0.5px solid #e8e6e0;font-size:14px}
+.task-item:last-child{border-bottom:none}
+.task-item input[type=checkbox]{width:16px;height:16px;cursor:pointer;accent-color:#7F77DD}
+.task-text{flex:1;color:#1a1a1a}
+.task-text.done{text-decoration:line-through;color:#b4b2a9}
+.badge{font-size:11px;padding:2px 8px;border-radius:20px;font-weight:500}
+.badge-high{background:#EEEDFE;color:#3C3489}
+.badge-med{background:#FAEEDA;color:#633806}
+.badge-low{background:#E1F5EE;color:#085041}
+.delete-btn{background:none;border:none;cursor:pointer;color:#b4b2a9;font-size:18px;padding:0 4px;line-height:1}
+.delete-btn:hover{color:#A32D2D}
+.add-form{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+.add-form input,.add-form select{flex:1;font-size:13px;padding:7px 10px;border:0.5px solid #b4b2a9;border-radius:8px;background:#f5f4f0;color:#1a1a1a;min-width:80px}
+.add-form select{flex:0 0 100px}
+.add-form button{padding:7px 16px;border-radius:8px;cursor:pointer;font-size:13px;background:#fff;border:0.5px solid #b4b2a9;color:#1a1a1a;font-weight:500}
+.add-form button:hover{background:#eeecea}
+.timer-wrap{display:flex;flex-direction:column;align-items:center;gap:1.25rem;padding:1rem 0}
+.timer-ring{position:relative;width:180px;height:180px}
+.timer-svg{transform:rotate(-90deg)}
+.timer-bg{fill:none;stroke:#e8e6e0;stroke-width:8}
+.timer-prog{fill:none;stroke:#7F77DD;stroke-width:8;stroke-linecap:round;transition:stroke-dashoffset 1s linear}
+.timer-display{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center}
+.timer-time{font-size:32px;font-weight:600;color:#1a1a1a}
+.timer-mode{font-size:12px;color:#888780;margin-top:2px}
+.timer-controls{display:flex;gap:10px}
+.timer-controls button{padding:8px 22px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:500}
+.t-start{background:#7F77DD;color:#fff;border:none}
+.t-start:hover{background:#534AB7}
+.t-reset{background:#fff;border:0.5px solid #b4b2a9;color:#5f5e5a}
+.t-reset:hover{background:#eeecea}
+.session-log{font-size:13px;color:#888780;text-align:center}
+.mode-tabs{display:flex;gap:8px;margin-bottom:1rem;flex-wrap:wrap}
+.mode-tab{padding:6px 14px;border-radius:8px;cursor:pointer;font-size:13px;border:0.5px solid #b4b2a9;background:#fff;color:#5f5e5a}
+.mode-tab.active{background:#EEEDFE;color:#3C3489;border-color:#AFA9EC;font-weight:500}
+.goals-grid{display:flex;flex-direction:column;gap:12px}
+.goal-item{display:flex;flex-direction:column;gap:6px}
+.goal-header{display:flex;justify-content:space-between;align-items:center;font-size:13px}
+.goal-name{font-weight:500;color:#1a1a1a}
+.goal-pct{color:#888780}
+.progress-bar{height:6px;background:#e8e6e0;border-radius:3px;overflow:hidden}
+.progress-fill{height:100%;border-radius:3px;transition:width 0.4s}
+.journal-area{width:100%;border:0.5px solid #b4b2a9;border-radius:8px;padding:10px;font-size:14px;background:#f5f4f0;color:#1a1a1a;resize:vertical;min-height:120px;font-family:system-ui,-apple-system,sans-serif;line-height:1.6}
+.mood-row{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap}
+.mood-btn{font-size:20px;background:#fff;border:0.5px solid #d3d1c7;border-radius:8px;padding:6px 12px;cursor:pointer;transition:background 0.15s}
+.mood-btn:hover,.mood-btn.selected{background:#eeecea;border-color:#888780}
+.save-btn{padding:8px 20px;background:#1D9E75;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:13px;font-weight:500}
+.save-btn:hover{background:#0F6E56}
+.entries-list{display:flex;flex-direction:column;gap:8px;max-height:260px;overflow-y:auto}
+.entry-card{background:#f5f4f0;border-radius:8px;padding:10px 12px;font-size:13px;color:#1a1a1a;line-height:1.6}
+.entry-meta{font-size:11px;color:#888780;margin-bottom:4px}
+.goal-actions{display:flex;align-items:center;gap:8px}
+.goal-actions input{width:62px;font-size:12px;padding:3px 6px;border:0.5px solid #b4b2a9;border-radius:4px;background:#f5f4f0;color:#1a1a1a}
+@media(max-width:600px){
+  .app{grid-template-columns:1fr;grid-template-rows:auto 1fr}
+  .sidebar{flex-direction:row;overflow-x:auto;padding:0.5rem;gap:4px}
+  .sidebar h2,.sidebar-brand,.sidebar>div:last-child{display:none}
+  .nav-btn{white-space:nowrap;font-size:12px;padding:6px 10px}
+  .stats-row{grid-template-columns:repeat(3,1fr)}
+}
+</style>
+</head>
+<body>
+
+<div class="app">
+  <div class="sidebar">
+    <div class="sidebar-brand">My Dashboard</div>
+    <h2>Workspace</h2>
+    <button class="nav-btn active" onclick="show('overview',this)"><span class="dot" style="background:#7F77DD"></span>Overview</button>
+    <button class="nav-btn" onclick="show('tasks',this)"><span class="dot" style="background:#1D9E75"></span>Tasks</button>
+    <button class="nav-btn" onclick="show('focus',this)"><span class="dot" style="background:#D85A30"></span>Focus timer</button>
+    <button class="nav-btn" onclick="show('goals',this)"><span class="dot" style="background:#BA7517"></span>Goals</button>
+    <button class="nav-btn" onclick="show('journal',this)"><span class="dot" style="background:#D4537E"></span>Journal</button>
+    <div style="flex:1"></div>
+    <div style="font-size:12px;color:#888780;padding:8px 4px" id="sidebar-date"></div>
+  </div>
+
+  <div class="main">
+
+    <!-- OVERVIEW -->
+    <div class="section visible" id="sec-overview">
+      <div>
+        <div class="page-title">Good day, Biplob</div>
+        <div class="page-sub" id="greeting-sub"></div>
+      </div>
+      <div class="stats-row">
+        <div class="stat-card"><div class="stat-num" id="ov-done">0</div><div class="stat-lbl">Tasks done today</div></div>
+        <div class="stat-card"><div class="stat-num" id="ov-pending">0</div><div class="stat-lbl">Pending tasks</div></div>
+        <div class="stat-card"><div class="stat-num" id="ov-sessions">0</div><div class="stat-lbl">Focus sessions</div></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Today's priorities <button class="add-btn" onclick="show('tasks',document.querySelectorAll('.nav-btn')[1])">View all</button></div>
+        <div id="ov-tasks-list"></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Goal progress</div>
+        <div class="goals-grid" id="ov-goals"></div>
+      </div>
+    </div>
+
+    <!-- TASKS -->
+    <div class="section" id="sec-tasks">
+      <div>
+        <div class="page-title">Tasks</div>
+        <div class="page-sub">Stay on top of everything you need to do</div>
+      </div>
+      <div class="card">
+        <div class="card-title">All tasks <span id="task-count" style="font-size:12px;color:#888780;font-weight:400"></span></div>
+        <div id="task-list"></div>
+        <div class="add-form">
+          <input type="text" id="task-input" placeholder="Add a task..." />
+          <select id="task-priority">
+            <option value="high">High</option>
+            <option value="med" selected>Medium</option>
+            <option value="low">Low</option>
+          </select>
+          <button onclick="addTask()">Add</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- FOCUS TIMER -->
+    <div class="section" id="sec-focus">
+      <div>
+        <div class="page-title">Focus timer</div>
+        <div class="page-sub">Use the Pomodoro technique to stay in deep work</div>
+      </div>
+      <div class="card">
+        <div class="mode-tabs">
+          <button class="mode-tab active" onclick="setMode('work',this)">Work (25m)</button>
+          <button class="mode-tab" onclick="setMode('short',this)">Short break (5m)</button>
+          <button class="mode-tab" onclick="setMode('long',this)">Long break (15m)</button>
+        </div>
+        <div class="timer-wrap">
+          <div class="timer-ring">
+            <svg class="timer-svg" width="180" height="180" viewBox="0 0 180 180">
+              <circle class="timer-bg" cx="90" cy="90" r="80"/>
+              <circle class="timer-prog" id="timer-ring" cx="90" cy="90" r="80" stroke-dasharray="502.6" stroke-dashoffset="0"/>
+            </svg>
+            <div class="timer-display">
+              <div class="timer-time" id="timer-display">25:00</div>
+              <div class="timer-mode" id="timer-mode-label">Work session</div>
+            </div>
+          </div>
+          <div class="timer-controls">
+            <button class="t-start" id="timer-btn" onclick="toggleTimer()">Start</button>
+            <button class="t-reset" onclick="resetTimer()">Reset</button>
+          </div>
+          <div class="session-log" id="session-log">0 sessions completed today</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- GOALS -->
+    <div class="section" id="sec-goals">
+      <div>
+        <div class="page-title">Goals</div>
+        <div class="page-sub">Track what matters most to you</div>
+      </div>
+      <div class="card">
+        <div class="card-title">Active goals</div>
+        <div class="goals-grid" id="goals-list"></div>
+        <div class="add-form" style="margin-top:14px">
+          <input type="text" id="goal-input" placeholder="Goal name..." style="flex:2;min-width:120px"/>
+          <input type="number" id="goal-target" placeholder="Target (e.g. 100)" style="min-width:80px"/>
+          <input type="number" id="goal-current" placeholder="Current" style="min-width:70px"/>
+          <button onclick="addGoal()">Add goal</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- JOURNAL -->
+    <div class="section" id="sec-journal">
+      <div>
+        <div class="page-title">Journal</div>
+        <div class="page-sub">Reflect, reset, and plan</div>
+      </div>
+      <div class="card">
+        <div class="card-title">How are you feeling?</div>
+        <div class="mood-row">
+          <button class="mood-btn" onclick="selectMood(this,'Great')">😊</button>
+          <button class="mood-btn" onclick="selectMood(this,'Okay')">😐</button>
+          <button class="mood-btn" onclick="selectMood(this,'Tired')">😴</button>
+          <button class="mood-btn" onclick="selectMood(this,'Stressed')">😤</button>
+          <button class="mood-btn" onclick="selectMood(this,'Motivated')">🔥</button>
+        </div>
+        <textarea class="journal-area" id="journal-text" placeholder="What's on your mind today? Write anything — plans, thoughts, wins, blockers..."></textarea>
+        <div style="margin-top:10px;display:flex;justify-content:flex-end">
+          <button class="save-btn" onclick="saveEntry()">Save entry</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Past entries</div>
+        <div class="entries-list" id="entries-list">
+          <div style="font-size:13px;color:#888780">No entries yet. Start writing!</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+var tasks=[
+  {id:1,text:"Review Marketing lecture notes",priority:"high",done:false},
+  {id:2,text:"Work on Ghaamchhaya product descriptions",priority:"high",done:false},
+  {id:3,text:"Library shift prep",priority:"med",done:false},
+  {id:4,text:"Reply to supervisor email",priority:"low",done:true}
+];
+var goals=[
+  {id:1,name:"Finish Marketing project",current:60,target:100},
+  {id:2,name:"Ghaamchhaya items listed",current:8,target:20},
+  {id:3,name:"Books organized at library",current:3,target:10}
+];
+var sessions=0,selectedMood="",journalEntries=[];
+var timerInterval=null,timerRunning=false;
+var modeSecs={work:25*60,short:5*60,long:15*60};
+var currentMode="work",timeLeft=25*60,totalTime=25*60;
+var CIRCUM=2*Math.PI*80;
+
+function show(id,btn){
+  document.querySelectorAll('.section').forEach(function(s){s.classList.remove('visible');});
+  document.querySelectorAll('.nav-btn').forEach(function(b){b.classList.remove('active');});
+  document.getElementById('sec-'+id).classList.add('visible');
+  btn.classList.add('active');
+  if(id==='overview')refreshOverview();
+  if(id==='tasks')renderTasks();
+  if(id==='goals')renderGoals();
+  if(id==='journal')renderEntries();
+}
+
+function refreshOverview(){
+  var done=tasks.filter(function(t){return t.done;}).length;
+  var pending=tasks.filter(function(t){return !t.done;}).length;
+  document.getElementById('ov-done').textContent=done;
+  document.getElementById('ov-pending').textContent=pending;
+  document.getElementById('ov-sessions').textContent=sessions;
+  var hi=tasks.filter(function(t){return !t.done&&t.priority==='high';}).slice(0,3);
+  var el=document.getElementById('ov-tasks-list');
+  if(!hi.length){el.innerHTML='<div style="font-size:13px;color:#888780;padding:8px 0">No high-priority tasks. Nice!</div>';return;}
+  el.innerHTML=hi.map(function(t){return '<div class="task-item"><input type="checkbox" onchange="toggleTask('+t.id+')"><span class="task-text">'+t.text+'</span><span class="badge badge-high">High</span></div>';}).join('');
+  var og=document.getElementById('ov-goals');
+  og.innerHTML=goals.map(function(g){var p=Math.round(Math.min(100,g.current/g.target*100));var col=p>=80?'#1D9E75':p>=40?'#BA7517':'#D85A30';return'<div class="goal-item"><div class="goal-header"><span class="goal-name">'+g.name+'</span><span class="goal-pct">'+p+'%</span></div><div class="progress-bar"><div class="progress-fill" style="width:'+p+'%;background:'+col+'"></div></div></div>';}).join('');
+}
+
+function renderTasks(){
+  var el=document.getElementById('task-list');
+  var cnt=document.getElementById('task-count');
+  cnt.textContent=tasks.filter(function(t){return t.done;}).length+'/'+tasks.length+' done';
+  if(!tasks.length){el.innerHTML='<div style="font-size:13px;color:#888780;padding:8px 0">No tasks yet!</div>';return;}
+  el.innerHTML=tasks.map(function(t){var bc={high:'badge-high',med:'badge-med',low:'badge-low'}[t.priority];var bl={high:'High',med:'Medium',low:'Low'}[t.priority];return'<div class="task-item"><input type="checkbox"'+(t.done?' checked':'')+' onchange="toggleTask('+t.id+')"><span class="task-text'+(t.done?' done':'')+'">'+t.text+'</span><span class="badge '+bc+'">'+bl+'</span><button class="delete-btn" onclick="deleteTask('+t.id+')">×</button></div>';}).join('');
+}
+
+function addTask(){
+  var inp=document.getElementById('task-input');
+  var pri=document.getElementById('task-priority').value;
+  var txt=inp.value.trim();
+  if(!txt)return;
+  tasks.push({id:Date.now(),text:txt,priority:pri,done:false});
+  inp.value='';
+  renderTasks();
+}
+
+function toggleTask(id){
+  var t=tasks.find(function(t){return t.id===id;});
+  if(t)t.done=!t.done;
+  renderTasks();
+}
+
+function deleteTask(id){
+  tasks=tasks.filter(function(t){return t.id!==id;});
+  renderTasks();
+}
+
+document.getElementById('task-input').addEventListener('keydown',function(e){if(e.key==='Enter')addTask();});
+
+function setMode(mode,btn){
+  document.querySelectorAll('.mode-tab').forEach(function(b){b.classList.remove('active');});
+  btn.classList.add('active');
+  currentMode=mode;
+  timeLeft=modeSecs[mode];totalTime=modeSecs[mode];
+  if(timerRunning){clearInterval(timerInterval);timerRunning=false;document.getElementById('timer-btn').textContent='Start';}
+  updateTimerDisplay();
+}
+
+function toggleTimer(){
+  if(timerRunning){clearInterval(timerInterval);timerRunning=false;document.getElementById('timer-btn').textContent='Start';}
+  else{timerRunning=true;document.getElementById('timer-btn').textContent='Pause';timerInterval=setInterval(tick,1000);}
+}
+
+function tick(){
+  if(timeLeft<=0){
+    clearInterval(timerInterval);timerRunning=false;
+    document.getElementById('timer-btn').textContent='Start';
+    if(currentMode==='work'){
+      sessions++;
+      document.getElementById('session-log').textContent=sessions+' session'+(sessions===1?'':'s')+' completed today';
+      document.getElementById('ov-sessions').textContent=sessions;
+    }
+    timeLeft=0;updateTimerDisplay();return;
+  }
+  timeLeft--;updateTimerDisplay();
+}
+
+function resetTimer(){
+  clearInterval(timerInterval);timerRunning=false;
+  document.getElementById('timer-btn').textContent='Start';
+  timeLeft=modeSecs[currentMode];totalTime=modeSecs[currentMode];
+  updateTimerDisplay();
+}
+
+function updateTimerDisplay(){
+  var m=Math.floor(timeLeft/60).toString().padStart(2,'0');
+  var s=(timeLeft%60).toString().padStart(2,'0');
+  document.getElementById('timer-display').textContent=m+':'+s;
+  var labels={work:'Work session',short:'Short break',long:'Long break'};
+  document.getElementById('timer-mode-label').textContent=labels[currentMode];
+  var pct=timeLeft/totalTime;
+  var offset=CIRCUM*(1-pct);
+  document.getElementById('timer-ring').style.strokeDashoffset=offset;
+}
+
+function renderGoals(){
+  var el=document.getElementById('goals-list');
+  if(!goals.length){el.innerHTML='<div style="font-size:13px;color:#888780">No goals yet. Add one below!</div>';return;}
+  el.innerHTML=goals.map(function(g){
+    var p=Math.round(Math.min(100,g.current/g.target*100));
+    var col=p>=80?'#1D9E75':p>=40?'#BA7517':'#D85A30';
+    return '<div class="goal-item"><div class="goal-header"><span class="goal-name">'+g.name+'</span><div class="goal-actions"><input type="number" value="'+g.current+'" onchange="updateGoal('+g.id+',this.value)" title="Update current value"><span class="goal-pct">'+p+'% of '+g.target+'</span><button onclick="deleteGoal('+g.id+')" style="background:none;border:none;cursor:pointer;color:#b4b2a9;font-size:16px">×</button></div></div><div class="progress-bar"><div class="progress-fill" style="width:'+p+'%;background:'+col+'"></div></div></div>';
+  }).join('');
+}
+
+function addGoal(){
+  var n=document.getElementById('goal-input').value.trim();
+  var t=parseInt(document.getElementById('goal-target').value)||100;
+  var c=parseInt(document.getElementById('goal-current').value)||0;
+  if(!n)return;
+  goals.push({id:Date.now(),name:n,current:c,target:t});
+  document.getElementById('goal-input').value='';
+  document.getElementById('goal-target').value='';
+  document.getElementById('goal-current').value='';
+  renderGoals();
+}
+
+function updateGoal(id,val){
+  var g=goals.find(function(g){return g.id===id;});
+  if(g){g.current=parseInt(val)||0;}
+  renderGoals();
+}
+
+function deleteGoal(id){
+  goals=goals.filter(function(g){return g.id!==id;});
+  renderGoals();
+}
+
+function selectMood(btn,mood){
+  document.querySelectorAll('.mood-btn').forEach(function(b){b.classList.remove('selected');});
+  btn.classList.add('selected');
+  selectedMood=mood;
+}
+
+function saveEntry(){
+  var txt=document.getElementById('journal-text').value.trim();
+  if(!txt)return;
+  var now=new Date();
+  journalEntries.unshift({
+    text:txt,mood:selectedMood,
+    date:now.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'})+' · '+now.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'})
+  });
+  document.getElementById('journal-text').value='';
+  selectedMood='';
+  document.querySelectorAll('.mood-btn').forEach(function(b){b.classList.remove('selected');});
+  renderEntries();
+}
+
+function renderEntries(){
+  var el=document.getElementById('entries-list');
+  if(!journalEntries.length){el.innerHTML='<div style="font-size:13px;color:#888780">No entries yet. Start writing!</div>';return;}
+  el.innerHTML=journalEntries.map(function(e){return'<div class="entry-card"><div class="entry-meta">'+e.date+(e.mood?' · '+e.mood:'')+'</div>'+e.text+'</div>';}).join('');
+}
+
+var now=new Date();
+document.getElementById('sidebar-date').textContent=now.toLocaleDateString('en-US',{weekday:'long',month:'short',day:'numeric'});
+var h=now.getHours();
+document.getElementById('greeting-sub').textContent=h<12?'Morning — let\'s make today count':h<17?'Afternoon — keep pushing':'Evening — wrap up strong';
+updateTimerDisplay();
+refreshOverview();
+</script>
+</body>
+</html>
